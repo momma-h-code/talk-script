@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>トークスクリプト（編集版）</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --nav-bg: #1e2535;
+    --nav-active: #f0f2f5;
+    --nav-active-text: #1e2535;
+    --nav-text: #94a3b8;
+    --primary: #3b82f6;
+    --primary-light: #eff6ff;
+    --green: #22c55e;
+    --green-light: #f0fdf4;
+    --orange: #f59e0b;
+    --orange-light: #fffbeb;
+    --red: #ef4444;
+    --red-light: #fef2f2;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --section-border: #3b82f6;
+    --edit-ring: #3b82f6;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ===== ツールバー ===== */
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    background: var(--nav-bg);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 0;
+    border-bottom: 1px solid #2d3a50;
+  }
+
+  .toolbar-title {
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 14px 16px 14px 0;
+    border-right: 1px solid #2d3a50;
+    margin-right: 12px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+
+  .tab-nav {
+    display: flex;
+    flex: 1;
+    overflow-x: auto;
+    gap: 2px;
+    padding: 8px 0;
+    scrollbar-width: none;
+  }
+  .tab-nav::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    padding: 7px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: inherit;
+    background: transparent;
+    color: var(--nav-text);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { background: #2d3a50; color: #fff; }
+  .tab-btn.active { background: var(--nav-active); color: var(--nav-active-text); }
+
+  .toolbar-actions {
+    display: flex;
+    gap: 8px;
+    padding-left: 12px;
+    border-left: 1px solid #2d3a50;
+    margin-left: 8px;
+  }
+
+  .btn {
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-save {
+    background: #22c55e;
+    color: #fff;
+  }
+  .btn-save:hover { background: #16a34a; }
+  .btn-dl {
+    background: #3b82f6;
+    color: #fff;
+  }
+  .btn-dl:hover { background: #2563eb; }
+  .btn-add {
+    background: #f59e0b;
+    color: #fff;
+    position: relative;
+  }
+  .btn-add:hover { background: #d97706; }
+
+  /* ===== 追加ドロップダウン ===== */
+  .add-menu-wrap { position: relative; }
+  .add-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+    padding: 8px;
+    min-width: 220px;
+    z-index: 999;
+    border: 1px solid #e2e8f0;
+  }
+  .add-menu.open { display: block; }
+  .add-menu-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.08em;
+    padding: 4px 8px 6px;
+    text-transform: uppercase;
+  }
+  .add-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    transition: background 0.12s;
+    text-align: left;
+  }
+  .add-menu-item:hover { background: #f8fafc; }
+  .add-menu-item .swatch {
+    width: 12px; height: 28px; border-radius: 3px; flex-shrink: 0;
+  }
+  .swatch-blue  { background: #3b82f6; }
+  .swatch-green { background: #22c55e; }
+  .swatch-orange{ background: #f59e0b; }
+  .swatch-yellow{ background: #fbbf24; }
+  .swatch-red   { background: #ef4444; }
+  .add-menu-sep { border: none; border-top: 1px solid #f1f5f9; margin: 4px 0; }
+
+  /* ===== 編集モードバナー ===== */
+  .edit-banner {
+    background: linear-gradient(90deg, #eff6ff, #f0fdf4);
+    border-bottom: 1px solid #bfdbfe;
+    padding: 8px 20px;
+    font-size: 12.5px;
+    color: #1d4ed8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .edit-banner strong { color: #15803d; }
+
+  /* ===== コンテンツ ===== */
+  .tab-content { display: none; padding: 20px; max-width: 900px; margin: 0 auto; }
+  .tab-content.active { display: block; }
+
+  /* ===== セクションタイトル ===== */
+  .section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e3a5f;
+    border-left: 5px solid var(--section-border);
+    padding: 7px 14px;
+    margin: 22px 0 10px;
+    background: var(--primary-light);
+    border-radius: 0 6px 6px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-title span { flex: 1; }
+  .section-title:first-child { margin-top: 6px; }
+  /* section-title の削除ボタン */
+  .section-title.deletable { padding-right: 36px; }
+  .section-title .sec-del-btn { top: 50%; transform: translateY(-50%); right: 8px; background: #bfdbfe; color: #1e40af; }
+  .section-title .sec-del-btn:hover { background: #93c5fd; }
+
+  /* ===== スクリプトブロック ===== */
+  .script-block {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 6px;
+    border-left: 4px solid var(--primary);
+    box-shadow: var(--shadow);
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .script-block .label-tag {
+    background: var(--primary);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .script-block .text { flex: 1; line-height: 1.75; color: var(--text); }
+
+  /* ===== 入力項目ブロック ===== */
+  .input-block {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    margin-bottom: 5px;
+    border-left: 4px solid var(--green);
+    box-shadow: var(--shadow);
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .input-block .field {
+    font-weight: 700;
+    color: #166534;
+    font-size: 13px;
+    padding-top: 2px;
+    line-height: 1.5;
+  }
+  .input-block .script-text { line-height: 1.75; color: var(--text); }
+
+  /* ===== 分岐ブロック ===== */
+  .branch-container {
+    background: var(--orange-light);
+    border: 2px solid #fcd34d;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 8px 0 12px;
+  }
+  .branch-header {
+    font-weight: 700;
+    color: #92400e;
+    margin-bottom: 10px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .branch-header-label { display: flex; align-items: center; gap: 6px; }
+  .branch-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+  .branch-item { flex: 1 1 240px; min-width: 200px; }
+  @media (max-width: 600px) { .branch-item { flex: 1 1 100%; } }
+
+  .branch-item {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    border-top: 3px solid #fcd34d;
+    position: relative;
+  }
+  .branch-item.yes { border-top-color: var(--green); }
+  .branch-item.no { border-top-color: var(--red); }
+  .branch-item { position: relative; }
+  .branch-item-del {
+    position: absolute;
+    top: 6px; right: 6px;
+    background: #fee2e2; color: #b91c1c;
+    border: none; border-radius: 4px;
+    width: 20px; height: 20px;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer; display: none;
+    align-items: center; justify-content: center;
+    z-index: 20;
+  }
+  .branch-item:hover .branch-item-del { display: flex; }
+  .branch-item-del:hover { background: #fca5a5; }
+  body:not(.admin) .branch-item-del { display: none !important; }
+  /* 選択肢追加ボタン */
+  .branch-add-btn {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px;
+    flex: 1 1 200px; min-width: 160px;
+    padding: 16px 10px;
+    background: #fffbf0;
+    border: 2px dashed #fcd34d;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px; font-weight: 700;
+    color: #92400e;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .branch-add-btn:hover { background: #fef3c7; border-color: #f59e0b; }
+  body:not(.admin) .branch-add-btn { display: none !important; }
+  .branch-cond {
+    font-weight: 700;
+    font-size: 12px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .branch-item.yes .branch-cond .cond-text { color: #166534; }
+  .branch-item.no .branch-cond .cond-text { color: #991b1b; }
+  .branch-action { color: var(--text); line-height: 1.75; font-size: 13px; }
+
+  /* ===== 注釈 ===== */
+  .note-block {
+    background: var(--orange-light);
+    border-radius: var(--radius);
+    padding: 10px 14px 10px 40px;
+    margin: 6px 0;
+    border-left: 4px solid var(--orange);
+    font-size: 13px;
+    color: #78350f;
+    line-height: 1.75;
+    position: relative;
+  }
+  .note-block::before { content: '📌'; position: absolute; left: 12px; top: 10px; }
+  .warning-block {
+    background: var(--red-light);
+    border-radius: var(--radius);
+    padding: 10px 14px 10px 40px;
+    margin: 6px 0;
+    border-left: 4px solid var(--red);
+    font-size: 13px;
+    color: #7f1d1d;
+    line-height: 1.75;
+    position: relative;
+  }
+  .warning-block::before { content: '⚠️'; position: absolute; left: 10px; top: 10px; }
+
+  /* ===== アクション ===== */
+  .action-block { background: var(--green-light); border-radius: var(--radius); padding: 12px 16px; margin: 6px 0; border-left: 4px solid var(--green); }
+  .action-title { font-weight: 700; color: #166534; margin-bottom: 8px; font-size: 13px; }
+  .action-item { padding: 4px 0; color: var(--text); line-height: 1.65; font-size: 13px; border-bottom: 1px solid #dcfce7; }
+  .action-item:last-child { border-bottom: none; }
+
+  /* ===== チェックリスト ===== */
+  .checklist { background: var(--surface); border-radius: var(--radius); padding: 12px 16px; margin: 6px 0; box-shadow: var(--shadow); }
+  .checklist-title { font-weight: 700; color: var(--text); margin-bottom: 8px; font-size: 13px; }
+  .check-item { padding: 5px 0; border-bottom: 1px solid #f8fafc; color: var(--text); line-height: 1.65; font-size: 13px; }
+  .check-item:last-child { border-bottom: none; }
+
+  /* ===== STEPフロー ===== */
+  .flow-step { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+  .step-num { background: var(--primary); color: #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .step-body { flex: 1; background: var(--surface); border-radius: var(--radius); padding: 11px 14px; box-shadow: var(--shadow); border-left: 3px solid var(--primary); }
+  .step-body .step-title { font-weight: 700; color: #1e3a5f; margin-bottom: 4px; font-size: 13px; }
+  .step-body .step-desc { color: var(--text); line-height: 1.75; font-size: 13px; }
+
+  /* ===== 料金表 ===== */
+  .price-table { width: 100%; border-collapse: collapse; margin: 8px 0; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  .price-table th { background: #1e2535; color: #fff; padding: 9px 14px; text-align: left; font-size: 13px; }
+  .price-table td { padding: 9px 14px; font-size: 13px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .price-table tr:last-child td { border-bottom: none; }
+  .price { font-weight: 700; color: #c2410c; }
+
+  /* ===== 区切り ===== */
+  .divider { border: none; border-top: 2px dashed var(--border); margin: 18px 0; }
+
+  /* ===== 編集可能エリア（adminモード時のみ有効） ===== */
+  body.admin [contenteditable="true"] {
+    outline: none;
+    border-radius: 4px;
+    transition: background 0.15s, box-shadow 0.15s;
+    cursor: text;
+    min-width: 20px;
+  }
+  body.admin [contenteditable="true"]:hover {
+    background: #f0f9ff;
+    box-shadow: 0 0 0 2px #bfdbfe;
+  }
+  body.admin [contenteditable="true"]:focus {
+    background: #fff;
+    box-shadow: 0 0 0 2px var(--edit-ring);
+  }
+  /* 閲覧モード: 編集UI非表示 */
+  body:not(.admin) .delete-btn { display: none !important; }
+  body:not(.admin) .toolbar-edit-only { display: none !important; }
+  body:not(.admin) .add-menu-wrap { display: none !important; }
+  body:not(.admin) .edit-banner { display: none !important; }
+  body:not(.admin) [contenteditable="true"] { cursor: default; pointer-events: none; }
+  /* adminモードバナー */
+  .mode-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+    margin-left: 10px;
+  }
+  .mode-badge.admin { background: #fbbf24; color: #78350f; }
+  .mode-badge.viewer { background: #334155; color: #94a3b8; }
+
+  /* ===== 削除ボタン ===== */
+  .deletable { position: relative; }
+  .delete-btn {
+    display: none !important;
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: #fee2e2;
+    color: #b91c1c;
+    border: none;
+    border-radius: 4px;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 700;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: background 0.15s;
+    pointer-events: auto !important;
+  }
+  .deletable:hover > .delete-btn { display: flex !important; }
+  .delete-btn:hover { background: #fca5a5; }
+  .input-block.deletable { padding-right: 38px; }
+
+  /* ===== 追加ボタン（行間） ===== */
+  .add-row-btn {
+    display: none;
+    width: 100%;
+    padding: 4px;
+    margin: 2px 0;
+    background: #eff6ff;
+    border: 1px dashed #93c5fd;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 11px;
+    color: #3b82f6;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .tab-content:hover .add-row-btn,
+  .add-row-btn:hover { display: block; }
+  .add-row-btn:hover { background: #dbeafe; }
+
+  /* ===== 保存フィードバック ===== */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1e2535;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ===== エリアタグ ===== */
+  .area-tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 5px;
+  }
+  .area-tokyo { background: #bee3f8; color: #1a365d; }
+  .area-saitama { background: #c6f6d5; color: #1c4532; }
+  .area-gunma { background: #fed7e2; color: #702459; }
+
+  /* アイコン風文字 */
+  .ico { font-size: 15px; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="toolbar-title">📞 トークスクリプト</div>
+  <nav class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('tab1',this)">搬送依頼</button>
+    <button class="tab-btn" onclick="switchTab('tab2',this)">供物発注</button>
+    <button class="tab-btn" onclick="switchTab('tab3',this)">資料請求</button>
+    <button class="tab-btn" onclick="switchTab('tab4',this)">事前相談（緊急性なし）</button>
+    <button class="tab-btn" onclick="switchTab('tab5',this)">事前相談（緊急性あり）</button>
+    <button class="tab-btn" onclick="switchTab('tab6',this)">その他</button>
+  </nav>
+  <div class="toolbar-actions">
+    <span class="mode-badge" id="modeBadge"></span>
+    <div class="add-menu-wrap toolbar-edit-only">
+      <button class="btn btn-add" onclick="toggleAddMenu(event)">＋ ブロック追加 ▾</button>
+      <div class="add-menu" id="addMenu">
+        <div class="add-menu-title">追加するブロックを選択</div>
+        <button class="add-menu-item" onclick="addBlock('section')"><span class="swatch" style="background:#3b82f6;border-left:4px solid #1d4ed8;width:16px"></span>セクションタイトル</button>
+        <hr class="add-menu-sep">
+        <button class="add-menu-item" onclick="addBlock('script')"><span class="swatch swatch-blue"></span>トークブロック（青）</button>
+        <button class="add-menu-item" onclick="addBlock('input')"><span class="swatch swatch-green"></span>入力項目（緑）</button>
+        <button class="add-menu-item" onclick="addBlock('branch')"><span class="swatch swatch-orange"></span>分岐ブロック（オレンジ）</button>
+        <hr class="add-menu-sep">
+        <button class="add-menu-item" onclick="addBlock('note')"><span class="swatch swatch-yellow"></span>注釈（黄）</button>
+        <button class="add-menu-item" onclick="addBlock('warning')"><span class="swatch swatch-red"></span>注意（赤）</button>
+      </div>
+    </div>
+    <button class="btn btn-save toolbar-edit-only" onclick="saveToLocal()">💾 保存</button>
+    <button class="btn btn-dl" onclick="downloadHTML()">⬇ ダウンロード</button>
+  </div>
+</div>
+
+<div class="edit-banner toolbar-edit-only">
+  <span class="ico">✏️</span>
+  <span>テキストを<strong>クリックすると直接編集</strong>できます。編集後は「<strong>💾 保存</strong>」で変更を保持、「<strong>⬇ ダウンロード</strong>」でHTMLファイルとして保存できます。</span>
+</div>
+
+<!-- ==================== 搬送依頼 ==================== -->
+<div id="tab1" class="tab-content active">
+
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">① 受電時の第一声</span></div>
+
+  <div class="script-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="text" contenteditable="true">この度は大変ご愁傷様でございます。</div>
+  </div>
+  <div class="script-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="text" contenteditable="true">それではこのお電話でお迎えのお手配をさせていただきます。ご準備をいたしますので、少々お待ちいただいてよろしいでしょうか。</div>
+  </div>
+  <div class="script-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="text" contenteditable="true">私共の方で精一杯お手伝いいたしますので、どうぞご安心くださいませ。</div>
+  </div>
+  <div class="script-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="text" contenteditable="true">こちらのコールセンター様々な地域から電話をお受けしておりますので今どちらの地域からおかけいただいてますか？</div>
+  </div>
+
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">② 会員確認（セールスフォースで電話番号検索）</span></div>
+
+  <div class="branch-container deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="branch-header">
+      <div class="branch-header-label"><span class="ico">⑂</span> <span contenteditable="true">分岐：電話番号ヒットの有無</span></div>
+    </div>
+    <div class="branch-grid">
+      <div class="branch-item yes"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button>
+        <div class="branch-cond"><span class="cond-text" contenteditable="true">▶ あり（ヒットした場合）</span></div>
+        <div class="branch-action" contenteditable="true">恐れ入りますが、ご親族どなたか様がわたくしどもの会員様でいらっしゃいますか。
+（互助会員か無料会員(きずな)かを確認）</div>
+      </div>
+      <div class="branch-item no"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button>
+        <div class="branch-cond"><span class="cond-text" contenteditable="true">▶ なし（ヒットしなかった場合）</span></div>
+        <div class="branch-action" contenteditable="true">新規で登録する。
+      <button class="branch-add-btn" onclick="addBranchItem(this)">＋ 選択肢を追加</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">③ 本受付開始</span></div>
+  <div class="script-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="text" contenteditable="true">大変お待たせいたしました。改めまして私、受付担当の〇〇と申します。よろしくお願いいたします。</div>
+  </div>
+  <div class="script-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="text" contenteditable="true">こちらの番号はなにをご覧になってご連絡いただいておりますでしょうか。</div>
+  </div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">④ 相談者情報の聴取</span></div>
+
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・相談者氏名（フリガナ）</div>
+    <div class="script-text" contenteditable="true">ご連絡者様のお名前をお伺いさせてください。</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">（・相談者住所）</div>
+    <div class="script-text" contenteditable="true">（住民登録のある）ご住所を教えて頂けますか？　※任意項目</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・電話番号</div>
+    <div class="script-text" contenteditable="true">お電話番号をお伺いさせてください。／このあと○○様とご連絡のつくお電話番号をお伺いできますでしょうか。</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・続柄</div>
+    <div class="script-text" contenteditable="true">この度お亡くなりになられた方から見て、○○様はどういった間柄に当たる方でいらっしゃいますでしょうか。</div>
+  </div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">⑤ 対象者情報の聴取</span></div>
+
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・対象者氏名（フリガナ）</div>
+    <div class="script-text" contenteditable="true">亡くなられた方のお名前をお伺いさせてください。（漢字もお伺いする）</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・性別／続柄</div>
+    <div class="script-text" contenteditable="true">相談者様とのご関係性（続柄）をお教えください。</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・対象者住所</div>
+    <div class="script-text" contenteditable="true">（住民登録のある）ご住所を郵便番号から教えて頂けますでしょうか。</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・固定電話</div>
+    <div class="script-text" contenteditable="true">もしご自宅に固定電話がありましたら、お伺いしてもよろしいでしょうか。／おかけする訳では無いのですが、ご住所の補足としてお伺いできますでしょうか。</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・生年月日</div>
+    <div class="script-text" contenteditable="true">生年月日をお教えください。</div>
+  </div>
+  <div class="note-block deletable">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除" style="top:4px;right:6px;">×</button>
+  <span contenteditable="true">    生活保護の場合：役所の許可が下りれば、自己負担無くお葬儀を行える可能性がございます。このまま、お受付をさせていただきます。→ 役所に○○様の担当の方がいらっしゃると思いますので、葬祭扶助の利用が可能かどうか一度問い合わせいただけますでしょうか。
+  </div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">⑥ お迎え先の確認</span></div>
+
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・お迎え先</div>
+    <div class="script-text" contenteditable="true">どちらでお休みになっていらっしゃいますか。／お迎え先（施設・病院(病室まで確認)・警察）はどちらになりますか？</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">　詳細場所</div>
+    <div class="script-text" contenteditable="true">何病棟、何階の何号室にいらっしゃいますか。／お迎え場所の詳細ですが、病室や霊安室等、何かご指示はございますか。</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・お迎え先住所</div>
+    <div class="script-text" contenteditable="true">ご住所もお願い致します。／詳しいご住所をお調べしておりますので少々お待ちください。</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・処置状況</div>
+    <div class="script-text" contenteditable="true">病院の方からお体を拭いたり等のご処置は始まっておりますか。／お身体のお手当はお済ですか？</div>
+  </div>
+
+  <div class="branch-container deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="branch-header">
+      <div class="branch-header-label"><span class="ico">⑂</span> <span contenteditable="true">分岐：お迎え先がどこか</span></div>
+    </div>
+    <div class="branch-grid">
+      <div class="branch-item yes"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button>
+        <div class="branch-cond"><span class="cond-text" contenteditable="true">▶ 自宅の場合</span></div>
+        <div class="branch-action" contenteditable="true">1. お医者様による死亡診断はお済ですか？
+2. お布団のご準備はございますでしょうか。ベッドでも問題ございません。
+3. 故人様の体を支えていただいたり、自宅にお寝かせいただくときにお手伝いくださる男性の方はおいでになりますでしょうか。</div>
+      </div>
+      <div class="branch-item no"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button>
+        <div class="branch-cond"><span class="cond-text" contenteditable="true">▶ 警察の場合</span></div>
+        <div class="branch-action" contenteditable="true">1. お姿の様子はいかがですか、亡くなられて何日ぐらいですか、外傷はありますか？
+2. 検案書の準備はできておりますでしょうか。
+3. お棺でのお迎えが必要かどうか、警察の方からお話はございましたか。
+4. 担当の警察官のお名前はご存じでしょうか？
+      <button class="branch-add-btn" onclick="addBranchItem(this)">＋ 選択肢を追加</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">（・お迎え希望日時）</div>
+    <div class="script-text" contenteditable="true">※お迎え未定の場合は「連絡待ち」
+×の場合：お迎えが可能になりましたら、お時間のご連絡をこのお電話番号にいただけますでしょうか。</div>
+  </div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">⑦ 安置場所の確認</span></div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・安置場所及び住所</div>
+    <div class="script-text" contenteditable="true">お迎えに伺ったあとのお連れ先ですが、ご自宅へお連れするか私共の会館へお連れするか、ご希望はございますでしょうか。</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・自宅を通るか（埼玉）</div>
+    <div class="script-text" contenteditable="true">○○からホールに行くときに、ご自宅の前を通った運転ルートでご案内をすることもできますが、いかがされますか。</div>
+  </div>
+  <div class="note-block deletable">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除" style="top:4px;right:6px;">×</button>
+  <span contenteditable="true">    【東京】高井戸・糀谷は面会不可を案内すること。
+  </div>
+  <div class="note-block deletable">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除" style="top:4px;right:6px;">×</button>
+  <span contenteditable="true">    【高崎】ホール安置の場合は希望ホールを伺い、基幹店に空き状況確認しお客様に連絡する。
+  </div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">⑧ 状況・要望の確認</span></div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・希望地域（市区町村まで）</div>
+    <div class="script-text" contenteditable="true">葬儀を（希望の地域、）希望の式場会館はございますでしょうか？
+「〇〇」会館ですね。かしこまりました。ご希望として承ります。
+もしご希望の会館が埋まっている場合は、希望の会館に空きが出るまでの間、近隣会館で一時的にお預かりしますのでご安心ください。</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・宗旨宗派</div>
+    <div class="script-text" contenteditable="true">ご宗教の宗旨宗派があればお伺いいたします。／大まかに仏式や神式等もございませんでしょうか。</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・菩提寺の有無</div>
+    <div class="script-text" contenteditable="true">お付き合いのあるお寺様はいらっしゃいますか？</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・会員有無</div>
+    <div class="script-text" contenteditable="true">ご親族どなたか様が、私どもの会員様でいらっしゃいますか。（互助会員か無料会員(きずな)かを確認）</div>
+  </div>
+  <div class="input-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="field" contenteditable="true">・その他要望</div>
+    <div class="script-text" contenteditable="true">その他、ご葬儀のお考えやご要望はございますか？</div>
+  </div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">⑨ クロージング</span></div>
+  <div class="script-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="text" contenteditable="true">それではこの後すぐにお車のお手配をさせていただきます。</div>
+  </div>
+  <div class="script-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="text" contenteditable="true">○○時間を目安に、到着させていただく予定でございますが、万が一、お迎え時間が大幅に前後する場合や、そのほかにお伝え事項がある場合は、こちらからご連絡させていただきます。</div>
+  </div>
+  <div class="script-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="text" contenteditable="true">見慣れない番号からお電話が入る可能性がございますが、お電話に出られる状況でお待ちいただけますでしょうか。</div>
+  </div>
+  <div class="script-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="text" contenteditable="true">現時点で何かご心配なことはございますか。もし何かあれば、ご連絡者様のお名前とお電話番号をお伝えいただければ、対応させていただきますのでご安心くださいませ。</div>
+  </div>
+  <div class="script-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="text" contenteditable="true">このお電話は24時間つながります。なにかあればご連絡くださいませ。</div>
+  </div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">⑩ 電話終了後のアクション</span></div>
+  <div class="action-block">
+    <div class="action-title">必須タスク</div>
+    <div class="action-item" contenteditable="true">FAXツールを確認する</div>
+    <div class="action-item" contenteditable="true">各拠点にFAX送信（搬送依頼書を作成・送付し、再入電あることを伝える）</div>
+    <div class="action-item" contenteditable="true">各拠点に電話で対応依頼</div>
+  </div>
+  <div class="note-block deletable">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除" style="top:4px;right:6px;">×</button>
+  <span contenteditable="true">    自宅安置の場合：安置の際にお手伝いをいただける状況か、安置布団（掛・敷両方）を用意してほしい旨を伝える。
+  </div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">⑪ 拠点別ルール</span></div>
+  <div class="checklist">
+    <div class="checklist-title"><span class="area-tag area-tokyo">東京</span></div>
+    <div class="check-item" contenteditable="true">搬送車：2名まで同乗可</div>
+    <div class="check-item" contenteditable="true">お迎え時間（1〜1.5時間）をお客様に伝える。大幅に遅れる場合は葬祭部より訂正連絡。携帯は必ず出ていただくよう依頼。</div>
+    <div class="check-item" contenteditable="true">警察案件は即時に葬祭部へ引継ぎ（03-3749-0983に折り返ししてもらう）</div>
+    <div class="check-item" contenteditable="true">処置状況は必ず確認し葬祭部へ引継ぎ</div>
+    <div class="check-item" contenteditable="true">お客様へお伝えした搬送時間は葬祭部へも伝える</div>
+  </div>
+  <div class="checklist">
+    <div class="checklist-title"><span class="area-tag area-saitama">埼玉</span></div>
+    <div class="check-item" contenteditable="true">搬送車：1名まで同乗可</div>
+  </div>
+  <div class="checklist">
+    <div class="checklist-title"><span class="area-tag area-gunma">群馬</span> お迎え時間の報告ルール</div>
+    <div class="check-item" contenteditable="true">会員等でお迎え前提の依頼：CC → 葬祭部で時間報告</div>
+    <div class="check-item" contenteditable="true">媒体・検討状態の場合：CCで時間報告</div>
+  </div>
+</div>
+
+<!-- ==================== 供物発注 ==================== -->
+<div id="tab2" class="tab-content">
+  <div class="warning-block" contenteditable="true">Excelの引き継ぎ書に直接入力！！</div>
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">① 情報聴取</span></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・施行ホール</div><div class="script-text" contenteditable="true">どちらの式場でお葬儀を予定されておりますでしょうか。</div></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・葬家名</div><div class="script-text" contenteditable="true">ご葬家様のお名前をお伺いできますでしょうか。</div></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・相談者氏名（フリガナ）</div><div class="script-text" contenteditable="true">ご連絡者様のお名前をお伺いさせてください。</div></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・相談者氏名（漢字）</div><div class="script-text" contenteditable="true">漢字もお教え頂けますか？</div></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・電話番号</div><div class="script-text" contenteditable="true">お電話番号をお伺いさせてください。</div></div>
+
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">② FAX有無の確認と対応</span></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・FAXの有無</div><div class="script-text" contenteditable="true">恐れ入りますが、FAXをお受け取りいただける環境はございますでしょうか。（一般家庭のFAX保有率は低いことを念頭に対応）</div></div>
+  <div class="branch-container deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="branch-header"><div class="branch-header-label"><span class="ico">⑂</span> <span contenteditable="true">分岐：FAX有無による対応</span></div></div>
+    <div class="branch-grid">
+      <div class="branch-item yes"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button><div class="branch-cond"><span class="cond-text" contenteditable="true">▶ FAXあり（〇）</span></div><div class="branch-action" contenteditable="true">注文書をFAXでお送りしたいのですが、FAX番号をお伺いしてもよろしいでしょうか。
+→ 注文書に必要事項をご記入の上、FAXでご返信いただけますでしょうか。</div></div>
+      <div class="branch-item no"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button><div class="branch-cond"><span class="cond-text" contenteditable="true">▶ FAXなし（×）</span></div><div class="branch-action" contenteditable="true">承知いたしました。このまま○○ホールの担当者にお繋ぎいたします。そのままお待ちいただけますか？
+→ 対象ホールに転送
+※24時間転送可能かどうか要確認
+      <button class="branch-add-btn" onclick="addBranchItem(this)">＋ 選択肢を追加</button></div></div>
+    </div>
+  </div>
+
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">③ 電話終了後のアクション</span></div>
+  <div class="action-block">
+    <div class="action-title">必須タスク</div>
+    <div class="action-item" contenteditable="true">各拠点に引き継ぎ書をFAX送信</div>
+    <div class="action-item" contenteditable="true">各拠点に電話で対応依頼</div>
+  </div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">④ 拠点別ルール</span></div>
+  <div class="checklist"><div class="checklist-title"><span class="area-tag area-tokyo">東京</span></div><div class="check-item" contenteditable="true">持ち込み：メモリード会館施行 → 持ち込み料1基あたり1,500円かかる旨を案内する</div><div class="check-item" contenteditable="true">持ち込み：メモリード会館以外での施行 → 可（持ち込み料かからない）</div><div class="check-item" contenteditable="true">業者間割引 → なし</div></div>
+  <div class="checklist"><div class="checklist-title"><span class="area-tag area-saitama">埼玉</span></div><div class="check-item" contenteditable="true">持ち込み：メモリード会館での施行のときは不可、他の会館の場合は可</div><div class="check-item" contenteditable="true">業者間割引 → 10%</div></div>
+</div>
+
+<!-- ==================== 資料請求 ==================== -->
+<div id="tab3" class="tab-content">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">① 受電〜情報聴取</span></div>
+  <div class="script-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="text" contenteditable="true">お問合せありがとうございます。資料請求でございますね。ご準備をいたしますので少々お待ちくださいませ。</div></div>
+  <div class="script-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="text" contenteditable="true">大変お待たせいたしました。</div></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・認知経路</div><div class="script-text" contenteditable="true">今回なにをご覧になってご連絡いただいておりますでしょうか。</div></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・相談者氏名（フリガナ）</div><div class="script-text" contenteditable="true">ご連絡者様のお名前をお伺いさせてください。</div></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・相談者氏名（漢字）</div><div class="script-text" contenteditable="true">漢字もお教え頂けますか？</div></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・相談者住所</div><div class="script-text" contenteditable="true">ご住所を教えて頂けますか？</div></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・電話番号</div><div class="script-text" contenteditable="true">お電話番号をお伺いさせてください。</div></div>
+
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">② 状況確認</span></div>
+  <div class="script-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="text" contenteditable="true">今どなたか様かご心配な状況でいらっしゃいますでしょうか。</div></div>
+
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">③ 対面相談のご案内</span></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・対面の相談をお勧め</div><div class="script-text" contenteditable="true">ご希望がございましたら、対面での相談も承っております。現在、対面相談の方へQUOカード1,000円分をお渡ししておりますので、よろしければこのままご都合を伺って日程調整をさせていただければと思いますが、いかがでしょうか。</div></div>
+  <div class="branch-container deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="branch-header"><div class="branch-header-label"><span class="ico">⑂</span> <span contenteditable="true">分岐：対面相談の意向</span></div></div>
+    <div class="branch-grid">
+      <div class="branch-item yes"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button><div class="branch-cond"><span class="cond-text" contenteditable="true">▶ 希望する（〇）</span></div><div class="branch-action" contenteditable="true">※「アポ取得時」のシートも要確認
+〇〇へご来店いただくことは可能でしょうか。
+
+【来館可の場合】
+基本的には、平日の10:00〜17:00の間でご案内をしております。
+「では、◎月〇日△時から、〇〇ホールでの対面相談を承りました。ご希望日時でのご対応が難しい際は、担当者よりご連絡させていただきますのでご了承くださいませ。」
+
+【来館不可・訪問希望の場合】
+担当者よりご連絡させていただきますので、日程等ご調整いただけますと幸いです。</div></div>
+      <div class="branch-item no"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button><div class="branch-cond"><span class="cond-text" contenteditable="true">▶ 希望しない</span></div><div class="branch-action" contenteditable="true">次のステップへ進む。
+      <button class="branch-add-btn" onclick="addBranchItem(this)">＋ 選択肢を追加</button></div></div>
+    </div>
+  </div>
+
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">④ 無料会員登録の案内</span></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・無料会員登録の案内</div><div class="script-text" contenteditable="true">今いただいた情報で無料の会員登録をさせていただければ、本日より会員価格でご案内が可能ですが、ご登録でよろしいでしょうか。</div></div>
+
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">⑤ 資料送付</span></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・資料送付の提案</div><div class="script-text" contenteditable="true">では、郵送で資料をお送りさせていただきます。</div></div>
+</div>
+
+<!-- ==================== 事前相談（緊急性なし） ==================== -->
+<div id="tab4" class="tab-content">
+  <div class="note-block">★ 存命で緊急性なし のケース</div>
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">① 状況確認</span></div>
+  <div class="script-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="text" contenteditable="true">今どなたか様かご心配な状況でいらっしゃいますでしょうか。</div></div>
+
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">② 対応フロー</span></div>
+  <div class="flow-step"><div class="step-num">1</div><div class="step-body"><div class="step-title" contenteditable="true">お客様の知りたい内容を聴取する</div><div class="step-desc" contenteditable="true">まずはご状況とご希望を丁寧にヒアリングする。</div></div></div>
+  <div class="flow-step"><div class="step-num">2</div><div class="step-body"><div class="step-title" contenteditable="true">対面の相談をお勧め</div><div class="step-desc" contenteditable="true">ご希望がございましたら、対面での相談も承っております。現在、対面相談の方へQUOカード1,000円分をお渡ししておりますので、よろしければこのままご都合を伺って日程調整をさせていただければと思いますが、いかがでしょうか。</div></div></div>
+  <div class="branch-container deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="branch-header"><div class="branch-header-label"><span class="ico">⑂</span> <span contenteditable="true">分岐：対面相談の意向</span></div></div>
+    <div class="branch-grid">
+      <div class="branch-item yes"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button><div class="branch-cond"><span class="cond-text" contenteditable="true">▶ 希望する（〇）</span></div><div class="branch-action" contenteditable="true">※「アポ取得時」のシートも要確認
+〇〇へご来店いただくことは可能でしょうか。
+【来館可の場合】お客様のご都合のよろしいお日にちと時間帯をお聞かせいただけますでしょうか。
+【来館不可・訪問希望の場合】担当者よりご連絡させていただきます。</div></div>
+      <div class="branch-item no"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button><div class="branch-cond"><span class="cond-text" contenteditable="true">▶ 希望しない</span></div><div class="branch-action" contenteditable="true">次のステップへ進む。
+      <button class="branch-add-btn" onclick="addBranchItem(this)">＋ 選択肢を追加</button></div></div>
+    </div>
+  </div>
+  <div class="flow-step"><div class="step-num">3</div><div class="step-body"><div class="step-title" contenteditable="true">無料会員登録の案内</div><div class="step-desc" contenteditable="true">今いただいた情報で無料の会員登録をさせていただければ、本日より会員価格でご案内が可能ですが、ご登録でよろしいでしょうか。</div></div></div>
+  <div class="flow-step"><div class="step-num">4</div><div class="step-body"><div class="step-title" contenteditable="true">資料送付の提案</div><div class="step-desc" contenteditable="true">では、郵送で資料をお送りさせていただきます。</div></div></div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">③ 見積依頼の際に確認してほしいこと</span></div>
+  <div class="checklist"><div class="check-item" contenteditable="true">会員の有無（互助会 OR 無料会員）</div><div class="check-item" contenteditable="true">一般葬（友人・知人・会社関係に知らせる）か家族葬か、希望する葬儀のイメージ</div></div>
+</div>
+
+<!-- ==================== 事前相談（緊急性あり） ==================== -->
+<div id="tab5" class="tab-content">
+  <div class="warning-block" contenteditable="true">★ 既死・危篤などで緊急性あり のケース　— 相談内容を聴取し、葬儀依頼にもっていく！</div>
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">① 状況確認</span></div>
+  <div class="script-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="text" contenteditable="true">今どなたか様かご心配な状況でいらっしゃいますでしょうか。</div></div>
+  <div class="script-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="text" contenteditable="true">数日以内にご準備しなくてはいけないご状況ですか？</div></div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">② 葬儀費用のご案内</span></div>
+  <div class="note-block" contenteditable="true">【東京】以下の内容（無料会員価格）で案内してください。</div>
+  <table class="price-table">
+    <thead><tr><th>プラン</th><th>価格（税込）</th><th>備考</th></tr></thead>
+    <tbody>
+      <tr><td contenteditable="true">火葬式プラン</td><td class="price" contenteditable="true">83,600円〜</td><td contenteditable="true"></td></tr>
+      <tr><td contenteditable="true">面会火葬式プラン</td><td class="price" contenteditable="true">165,000円〜</td><td contenteditable="true"></td></tr>
+      <tr><td contenteditable="true">家族葬プラン（1日葬）</td><td class="price" contenteditable="true">264,000円〜</td><td contenteditable="true">2日葬は+30,000〜50,000円</td></tr>
+    </tbody>
+  </table>
+  <div class="note-block" contenteditable="true">【群馬・埼玉】以下の内容（まずは一般価格）で案内してください。</div>
+  <table class="price-table">
+    <thead><tr><th>プラン</th><th>価格（税込）</th><th>値引き提案</th></tr></thead>
+    <tbody>
+      <tr><td contenteditable="true">火葬式プラン</td><td class="price" contenteditable="true">94,600円〜</td><td contenteditable="true">難色→CCから11,000円の割引提案可</td></tr>
+      <tr><td contenteditable="true">面会火葬式プラン</td><td class="price" contenteditable="true">176,000円〜</td><td contenteditable="true">難色→CCから11,000円の割引提案可</td></tr>
+      <tr><td contenteditable="true">家族葬プラン（1日葬）</td><td class="price" contenteditable="true">319,000円〜</td><td contenteditable="true">難色→CCから55,000円の割引提案可</td></tr>
+    </tbody>
+  </table>
+  <div class="note-block" contenteditable="true">さらに詳細金額を聞かれた場合：折り返しを案内して当番に相談</div>
+
+  <div class="branch-container deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="branch-header"><div class="branch-header-label"><span class="ico">⑂</span> <span contenteditable="true">分岐：値引き交渉が発生した場合</span></div></div>
+    <div class="branch-grid">
+      <div class="branch-item yes"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button><div class="branch-cond"><span class="cond-text" contenteditable="true">▶ 値引き交渉あり</span></div><div class="branch-action" contenteditable="true">一旦上席に確認させていただきますので、少々お待ちくださいませ。
+（30秒ほど保留にして）お待たせいたしました。このお電話でお決めいただけるのであれば、今回のみ○○円引きでご対応させていただきます。</div></div>
+      <div class="branch-item no"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button><div class="branch-cond"><span class="cond-text" contenteditable="true">▶ 交渉なし</span></div><div class="branch-action" contenteditable="true">そのまま次のステップへ進む。
+      <button class="branch-add-btn" onclick="addBranchItem(this)">＋ 選択肢を追加</button></div></div>
+    </div>
+  </div>
+
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">③ 葬儀日程の相談</span></div>
+  <div class="input-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="field" contenteditable="true">・葬儀日程の相談</div><div class="script-text" contenteditable="true">お客様のご希望の日時でご調整させていただきます。ただ、日程は「火葬場の空き状況」や「お寺の都合」など要因がございます。それらを含め、詳しくはお打ち合わせで対応させていただきますのでご安心ください。</div></div>
+
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">④ 失注対策クロージング</span></div>
+  <div class="script-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="label-tag">失注対策プラン</div>
+    <div class="text" contenteditable="true">この後、他社様と料金を比較されるかと思いますが、基本プランの他に追加になる費用が必ずありますので、そちらもご確認いただき比較検討していただきますようにお願いいたします。</div>
+  </div>
+  <div class="note-block" contenteditable="true">逝去事後相談・追客ルール：15分後を目安にお客様に架電する（約3〜4回、1時間は追客する）</div>
+</div>
+
+<!-- ==================== その他 ==================== -->
+<div id="tab6" class="tab-content">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">他社宛の間違い電話</span></div>
+  <div class="note-block" contenteditable="true">※○○葬儀社ですか？と言われた際に、否定は使わない。</div>
+  <div class="script-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="text" contenteditable="true">恐れ入りますが、私どもメモリードと申します。私どもでも、葬儀のお手伝いが可能でございますが、いかがなさいますか。</div></div>
+  <div class="note-block" contenteditable="true">【送客した場合】他社宛での入電だったが、メモリードとご案内し受注になった旨を加える。</div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">（エンゼル）ケアのみお願いしたい</span></div>
+  <div class="note-block" contenteditable="true">※奇数月の前半がメモリードの担当
+※群馬大学病院（前橋）・高崎総合医療センター（高崎）と契約</div>
+  <div class="checklist"><div class="check-item" contenteditable="true">対象者様のお名前を聴取</div><div class="check-item" contenteditable="true">お伺い場所を聴取</div><div class="check-item" contenteditable="true">1時間〜1時間半で伺える旨を伝える</div></div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">葬儀の日程確認・参列確認</span></div>
+  <div class="checklist"><div class="check-item" contenteditable="true">〇〇家（苗字のみ）</div><div class="check-item" contenteditable="true">式場（どこのホールか）</div><div class="check-item" contenteditable="true">日時（通夜・葬儀が何日の何時か）</div></div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">会報誌を止めてほしい（会員専用窓口へ誘導）</span></div>
+  <div class="checklist"><div class="check-item" contenteditable="true">宛名の確認（住所も）があればコールセンターで受けられる</div><div class="check-item" contenteditable="true">会報誌「ありがとう」は年2回発行</div><div class="check-item" contenteditable="true">① どなた様宛の会報誌が届いているか、連絡者の名前・電話・間柄を確認</div><div class="check-item" contenteditable="true">② セールスフォースで会員を検索</div><div class="check-item" contenteditable="true">→ 有：止める旨をお伝え　無：担当から折り返す旨お伝え</div><div class="check-item" contenteditable="true">→ デスクネッツで会員システムの方々にメールで送る</div></div>
+  <div class="note-block" contenteditable="true">会員システムが水曜臨時休業の場合、水曜受付分はデスクネッツで引継ぎ</div>
+  <div class="checklist"><div class="check-item" contenteditable="true">群馬：萩原直大、鎌田潤子</div><div class="check-item" contenteditable="true">埼玉：埼玉管理課事務所</div><div class="check-item" contenteditable="true">東京：中西あゆみ宛に送る（東京管理課 FAX: 03-3749-1147）</div></div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">会員があるかどうかわからないお問い合わせ</span></div>
+  <div class="note-block" contenteditable="true">Salesforceで確認可。日中は担当者へ確認。会員なのにないと答えるのが一番怖いので、必ず会員システムを案内する。</div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">法事</span></div>
+  <div class="script-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="text" contenteditable="true">担当者の名前を聞く。</div></div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">会報誌を見てイベント参加</span></div>
+  <div class="checklist"><div class="check-item" contenteditable="true">名前、連絡先、住所を聴取</div><div class="check-item" contenteditable="true">どのイベントで何時からか伺う</div><div class="check-item" contenteditable="true">→ コールセンター通知でメール＋営業部へTEL</div></div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">故人の顔にかける布などのセットをお届け希望</span></div>
+  <div class="note-block" contenteditable="true">対象病院：高崎中央病院、角田病院（玉村町）</div>
+  <div class="checklist"><div class="check-item" contenteditable="true">セット数の確認</div></div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">エッセンス軽井沢について</span></div>
+  <div class="script-block deletable"><button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button><div class="text" contenteditable="true">ホテル事業でより詳しいお話を希望されるのであれば、ホテル担当から折り返すか、お客様のご都合の良い時間に東京本社へのお電話（03-3273-7711）をお願いしたい。</div></div>
+
+  <hr class="divider">
+  <div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">葬儀費用支払い</span></div>
+  <div class="checklist"><div class="checklist-title"><span class="area-tag area-saitama">埼玉</span></div><div class="check-item" contenteditable="true">現金一括</div><div class="check-item" contenteditable="true">口座振り込み</div><div class="check-item" contenteditable="true">クレジットカード</div></div>
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== モード判定 =====
+const IS_ADMIN = location.search.includes('admin') || location.hash.includes('admin');
+
+function applyMode() {
+  const badge = document.getElementById('modeBadge');
+  if (IS_ADMIN) {
+    document.body.classList.add('admin');
+    badge.textContent = '✏️ 管理者モード';
+    badge.className = 'mode-badge admin';
+  } else {
+    document.body.classList.remove('admin');
+    badge.textContent = '👁 閲覧モード';
+    badge.className = 'mode-badge viewer';
+    // 閲覧モードはcontenteditable無効化
+    document.querySelectorAll('[contenteditable]').forEach(el => {
+      el.removeAttribute('contenteditable');
+    });
+  }
+}
+
+// ===== タブ切替 =====
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ===== 削除 =====
+function deleteBlock(btn) {
+  // ボタン自身またはその祖先の.deletableを削除
+  var el = btn;
+  while (el && !el.classList.contains('deletable')) {
+    el = el.parentElement;
+  }
+  if (el && confirm('このブロックを削除しますか？')) {
+    el.remove();
+  }
+}
+
+// ===== 分岐選択肢の追加・削除 =====
+function addBranchItem(btn) {
+  const grid = btn.closest('.branch-grid');
+  const colors = ['#48bb78','#f59e0b','#3b82f6','#a78bfa','#f87171','#34d399'];
+  const count = grid.querySelectorAll('.branch-item').length;
+  const color = colors[count % colors.length];
+  const item = document.createElement('div');
+  item.className = 'branch-item';
+  item.style.borderTopColor = color;
+  item.innerHTML = `<button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button>
+    <div class="branch-cond"><span class="cond-text" contenteditable="true">▶ 選択肢を入力</span></div>
+    <div class="branch-action" contenteditable="true">対応内容を入力してください。</div>`;
+  // 追加ボタンの直前に挿入
+  grid.insertBefore(item, btn);
+  item.querySelector('[contenteditable]').focus();
+}
+
+function deleteBranchItem(btn) {
+  const item = btn.closest('.branch-item');
+  const grid = item.closest('.branch-grid');
+  if (grid.querySelectorAll('.branch-item').length <= 1) {
+    showToast('選択肢は最低1つ必要です', '⚠️'); return;
+  }
+  if (confirm('この選択肢を削除しますか？')) item.remove();
+}
+
+// ===== 追加メニュー開閉 =====
+function toggleAddMenu(e) {
+  e.stopPropagation();
+  document.getElementById('addMenu').classList.toggle('open');
+}
+document.addEventListener('click', () => {
+  document.getElementById('addMenu').classList.remove('open');
+});
+
+// ===== ブロック追加 =====
+function addBlock(type) {
+  document.getElementById('addMenu').classList.remove('open');
+
+  // 現在アクティブなタブのコンテンツ末尾に追加
+  const target = document.querySelector('.tab-content.active');
+
+  let html = '';
+  if (type === 'section') {
+    html = `<div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">新しいセクション</span></div>`;
+  } else if (type === 'script') {
+    html = `<div class="script-block deletable" style="margin-top:6px">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+  <div class="text" contenteditable="true">ここにトーク内容を入力してください。</div>
+</div>`;
+  } else if (type === 'input') {
+    html = `<div class="input-block deletable" style="margin-top:6px">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+  <div class="field" contenteditable="true">・項目名</div>
+  <div class="script-text" contenteditable="true">ここにトーク内容を入力してください。</div>
+</div>`;
+  } else if (type === 'branch') {
+    html = `<div class="branch-container deletable" style="margin-top:8px">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+  <div class="branch-header">
+    <div class="branch-header-label"><span class="ico">⑂</span> <span contenteditable="true">分岐：条件を入力してください</span></div>
+  </div>
+  <div class="branch-grid">
+    <div class="branch-item yes"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button>
+      <div class="branch-cond"><span class="cond-text" contenteditable="true">▶ はい / あり</span></div>
+      <div class="branch-action" contenteditable="true">対応内容を入力してください。</div>
+    </div>
+    <div class="branch-item no"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button>
+      <div class="branch-cond"><span class="cond-text" contenteditable="true">▶ いいえ / なし</span></div>
+      <div class="branch-action" contenteditable="true">対応内容を入力してください。
+      <button class="branch-add-btn" onclick="addBranchItem(this)">＋ 選択肢を追加</button></div>
+    </div>
+  </div>
+</div>`;
+  } else if (type === 'note') {
+    html = `<div class="note-block deletable" style="margin-top:6px">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除" style="top:4px;right:6px;">×</button>
+  <span contenteditable="true">  注釈内容を入力してください。
+</div>`;
+  } else if (type === 'warning') {
+    html = `<div class="warning-block deletable" style="margin-top:6px">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除" style="top:4px;right:6px;">×</button>
+  <span contenteditable="true">  注意内容を入力してください。
+</div>`;
+  }
+
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const newEl = tmp.firstElementChild;
+  target.appendChild(newEl);
+
+  // フォーカスを新しいブロックの編集可能な要素へ
+  const editable = newEl.querySelector('[contenteditable="true"]');
+  if (editable) {
+    editable.focus();
+    // テキスト全選択
+    const range = document.createRange();
+    range.selectNodeContents(editable);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  // スクロール
+  newEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  showToast('ブロックを追加しました');
+}
+
+// ===== トースト =====
+function showToast(msg, emoji = '✅') {
+  const t = document.getElementById('toast');
+  t.innerHTML = `<span>${emoji}</span> ${msg}`;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ===== ローカル保存 =====
+function saveToLocal() {
+  try {
+    localStorage.setItem('talkscript_html', document.documentElement.outerHTML);
+    showToast('このブラウザに保存しました');
+  } catch(e) {
+    showToast('保存に失敗しました', '❌');
+  }
+}
+
+// ===== HTMLダウンロード =====
+function downloadHTML() {
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'トークスクリプト_編集版.html';
+  a.click();
+  showToast('HTMLファイルをダウンロードしました', '⬇');
+}
+
+// ===== ローカルストレージから復元 =====
+window.addEventListener('DOMContentLoaded', () => {
+  applyMode();
+  if (localStorage.getItem('talkscript_html')) {
+    const banner = document.querySelector('.edit-banner');
+    const restore = document.createElement('button');
+    restore.textContent = '前回の編集内容を復元';
+    restore.style.cssText = 'margin-left:12px;padding:3px 10px;border-radius:5px;border:1px solid #93c5fd;background:#dbeafe;color:#1d4ed8;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;';
+    restore.onclick = () => {
+      if (confirm('前回保存した内容に戻しますか？（現在の編集は失われます）')) {
+        document.open();
+        document.write(localStorage.getItem('talkscript_html'));
+        document.close();
+      }
+    };
+    banner.appendChild(restore);
+  }
+});
+</script>
+</body>
+</html>
