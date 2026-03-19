@@ -1,0 +1,1175 @@
+<html lang="ja"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>テストスクリプト（編集版）</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --nav-bg: #1e2535;
+    --nav-active: #f0f2f5;
+    --nav-active-text: #1e2535;
+    --nav-text: #94a3b8;
+    --primary: #3b82f6;
+    --primary-light: #eff6ff;
+    --green: #22c55e;
+    --green-light: #f0fdf4;
+    --orange: #f59e0b;
+    --orange-light: #fffbeb;
+    --red: #ef4444;
+    --red-light: #fef2f2;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --section-border: #3b82f6;
+    --edit-ring: #3b82f6;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ===== ツールバー ===== */
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    background: var(--nav-bg);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 0;
+    border-bottom: 1px solid #2d3a50;
+  }
+
+  .toolbar-title {
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 14px 16px 14px 0;
+    border-right: 1px solid #2d3a50;
+    margin-right: 12px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+    border-radius: 4px;
+    outline: none;
+    min-width: 40px;
+  }
+  body.admin .toolbar-title:hover { background: #2d3a50; cursor: text; }
+  body.admin .toolbar-title:focus { background: #2d3a50; box-shadow: 0 0 0 2px #3b82f6; }
+  body:not(.admin) .toolbar-title { pointer-events: none; }
+
+  .tab-nav {
+    display: flex;
+    flex: 1;
+    overflow-x: auto;
+    gap: 2px;
+    padding: 8px 0;
+    scrollbar-width: none;
+  }
+  .tab-nav::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    padding: 7px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: inherit;
+    background: transparent;
+    color: var(--nav-text);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { background: #2d3a50; color: #fff; }
+  .tab-btn.active { background: var(--nav-active); color: var(--nav-active-text); }
+
+  .toolbar-actions {
+    display: flex;
+    gap: 8px;
+    padding-left: 12px;
+    border-left: 1px solid #2d3a50;
+    margin-left: 8px;
+  }
+
+  .btn {
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-save {
+    background: #22c55e;
+    color: #fff;
+  }
+  .btn-save:hover { background: #16a34a; }
+  .btn-dl {
+    background: #3b82f6;
+    color: #fff;
+  }
+  .btn-dl:hover { background: #2563eb; }
+  .btn-add {
+    background: #f59e0b;
+    color: #fff;
+    position: relative;
+  }
+  .btn-add:hover { background: #d97706; }
+
+  /* ===== 追加ドロップダウン ===== */
+  .add-menu-wrap { position: relative; }
+  .add-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+    padding: 8px;
+    min-width: 220px;
+    z-index: 999;
+    border: 1px solid #e2e8f0;
+  }
+  .add-menu.open { display: block; }
+  .add-menu-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.08em;
+    padding: 4px 8px 6px;
+    text-transform: uppercase;
+  }
+  .add-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    transition: background 0.12s;
+    text-align: left;
+  }
+  .add-menu-item:hover { background: #f8fafc; }
+  .add-menu-item .swatch {
+    width: 12px; height: 28px; border-radius: 3px; flex-shrink: 0;
+  }
+  .swatch-blue  { background: #3b82f6; }
+  .swatch-green { background: #22c55e; }
+  .swatch-orange{ background: #f59e0b; }
+  .swatch-yellow{ background: #fbbf24; }
+  .swatch-red   { background: #ef4444; }
+  .add-menu-sep { border: none; border-top: 1px solid #f1f5f9; margin: 4px 0; }
+
+  /* ===== 編集モードバナー ===== */
+  .edit-banner {
+    background: linear-gradient(90deg, #eff6ff, #f0fdf4);
+    border-bottom: 1px solid #bfdbfe;
+    padding: 8px 20px;
+    font-size: 12.5px;
+    color: #1d4ed8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .edit-banner strong { color: #15803d; }
+
+  /* ===== コンテンツ ===== */
+  .tab-content { display: none; padding: 20px; max-width: 900px; margin: 0 auto; }
+  .tab-content.active { display: block; }
+
+  /* ===== セクションタイトル ===== */
+  .section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e3a5f;
+    border-left: 5px solid var(--section-border);
+    padding: 7px 14px;
+    margin: 22px 0 10px;
+    background: var(--primary-light);
+    border-radius: 0 6px 6px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-title span { flex: 1; }
+  .section-title:first-child { margin-top: 6px; }
+  /* section-title の削除ボタン */
+  .section-title.deletable { padding-right: 36px; }
+  .section-title .sec-del-btn { top: 50%; transform: translateY(-50%); right: 8px; background: #bfdbfe; color: #1e40af; }
+  .section-title .sec-del-btn:hover { background: #93c5fd; }
+
+  /* ===== スクリプトブロック ===== */
+  .script-block {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 6px;
+    border-left: 4px solid var(--primary);
+    box-shadow: var(--shadow);
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .script-block .label-tag {
+    background: var(--primary);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .script-block .text { flex: 1; line-height: 1.75; color: var(--text); }
+
+  /* ===== 入力項目ブロック ===== */
+  .input-block {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    margin-bottom: 5px;
+    border-left: 4px solid var(--green);
+    box-shadow: var(--shadow);
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .input-block .field {
+    font-weight: 700;
+    color: #166534;
+    font-size: 13px;
+    padding-top: 2px;
+    line-height: 1.5;
+  }
+  .input-block .script-text { line-height: 1.75; color: var(--text); }
+
+  /* ===== 分岐ブロック ===== */
+  .branch-container {
+    background: var(--orange-light);
+    border: 2px solid #fcd34d;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 8px 0 12px;
+  }
+  .branch-header {
+    font-weight: 700;
+    color: #92400e;
+    margin-bottom: 10px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .branch-header-label { display: flex; align-items: center; gap: 6px; }
+  .branch-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+  .branch-item { flex: 1 1 240px; min-width: 200px; }
+  @media (max-width: 600px) { .branch-item { flex: 1 1 100%; } }
+
+  .branch-item {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    border-top: 3px solid #fcd34d;
+    position: relative;
+  }
+  .branch-item.yes { border-top-color: var(--green); }
+  .branch-item.no { border-top-color: var(--red); }
+  .branch-item { position: relative; }
+  .branch-item-del {
+    position: absolute;
+    top: 6px; right: 6px;
+    background: #fee2e2; color: #b91c1c;
+    border: none; border-radius: 4px;
+    width: 20px; height: 20px;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer; display: none;
+    align-items: center; justify-content: center;
+    z-index: 20;
+  }
+  .branch-item:hover .branch-item-del { display: flex; }
+  .branch-item-del:hover { background: #fca5a5; }
+  body:not(.admin) .branch-item-del { display: none !important; }
+  /* 選択肢追加ボタン */
+  .branch-add-btn {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    background: #fffbf0;
+    border: 2px dashed #fcd34d;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px; font-weight: 700;
+    color: #92400e;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .branch-add-btn:hover { background: #fef3c7; border-color: #f59e0b; }
+  body:not(.admin) .branch-add-btn { display: none !important; }
+  .branch-cond {
+    font-weight: 700;
+    font-size: 12px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .branch-item.yes .branch-cond .cond-text { color: #166534; }
+  .branch-item.no .branch-cond .cond-text { color: #991b1b; }
+  .branch-action { color: var(--text); line-height: 1.75; font-size: 13px; }
+
+  /* ===== 注釈 ===== */
+  .note-block {
+    background: var(--orange-light);
+    border-radius: var(--radius);
+    padding: 10px 14px 10px 40px;
+    margin: 6px 0;
+    border-left: 4px solid var(--orange);
+    font-size: 13px;
+    color: #78350f;
+    line-height: 1.75;
+    position: relative;
+  }
+  .note-block::before { content: '📌'; position: absolute; left: 12px; top: 10px; }
+  .warning-block {
+    background: var(--red-light);
+    border-radius: var(--radius);
+    padding: 10px 14px 10px 40px;
+    margin: 6px 0;
+    border-left: 4px solid var(--red);
+    font-size: 13px;
+    color: #7f1d1d;
+    line-height: 1.75;
+    position: relative;
+  }
+  .warning-block::before { content: '⚠️'; position: absolute; left: 10px; top: 10px; }
+
+  /* ===== アクション ===== */
+  .action-block { background: var(--green-light); border-radius: var(--radius); padding: 12px 16px; margin: 6px 0; border-left: 4px solid var(--green); }
+  .action-title { font-weight: 700; color: #166534; margin-bottom: 8px; font-size: 13px; }
+  .action-item { padding: 4px 0; color: var(--text); line-height: 1.65; font-size: 13px; border-bottom: 1px solid #dcfce7; }
+  .action-item:last-child { border-bottom: none; }
+
+  /* ===== チェックリスト ===== */
+  .checklist { background: var(--surface); border-radius: var(--radius); padding: 12px 16px; margin: 6px 0; box-shadow: var(--shadow); }
+  .checklist-title { font-weight: 700; color: var(--text); margin-bottom: 8px; font-size: 13px; }
+  .check-item { padding: 5px 0; border-bottom: 1px solid #f8fafc; color: var(--text); line-height: 1.65; font-size: 13px; }
+  .check-item:last-child { border-bottom: none; }
+
+  /* ===== STEPフロー ===== */
+  .flow-step { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+  .step-num { background: var(--primary); color: #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .step-body { flex: 1; background: var(--surface); border-radius: var(--radius); padding: 11px 14px; box-shadow: var(--shadow); border-left: 3px solid var(--primary); }
+  .step-body .step-title { font-weight: 700; color: #1e3a5f; margin-bottom: 4px; font-size: 13px; }
+  .step-body .step-desc { color: var(--text); line-height: 1.75; font-size: 13px; }
+
+  /* ===== 料金表 ===== */
+  .price-table { width: 100%; border-collapse: collapse; margin: 8px 0; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  .price-table th { background: #1e2535; color: #fff; padding: 9px 14px; text-align: left; font-size: 13px; }
+  .price-table td { padding: 9px 14px; font-size: 13px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .price-table tr:last-child td { border-bottom: none; }
+  .price { font-weight: 700; color: #c2410c; }
+
+  /* ===== 区切り ===== */
+  .divider { border: none; border-top: 2px dashed var(--border); margin: 18px 0; }
+
+  /* ===== 編集可能エリア（adminモード時のみ有効） ===== */
+  body.admin [contenteditable="true"] {
+    outline: none;
+    border-radius: 4px;
+    transition: background 0.15s, box-shadow 0.15s;
+    cursor: text;
+    min-width: 20px;
+  }
+  body.admin [contenteditable="true"]:hover {
+    background: #f0f9ff;
+    box-shadow: 0 0 0 2px #bfdbfe;
+  }
+  body.admin [contenteditable="true"]:focus {
+    background: #fff;
+    box-shadow: 0 0 0 2px var(--edit-ring);
+  }
+  /* 閲覧モード: 編集UI非表示 */
+  body:not(.admin) .delete-btn { display: none !important; }
+  body:not(.admin) .toolbar-edit-only { display: none !important; }
+  body:not(.admin) .add-menu-wrap { display: none !important; }
+  body:not(.admin) .edit-banner { display: none !important; }
+  body:not(.admin) [contenteditable="true"] { cursor: default; pointer-events: none; }
+  /* adminモードバナー */
+  .mode-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+    margin-left: 10px;
+  }
+  .mode-badge.admin { background: #fbbf24; color: #78350f; }
+  .mode-badge.viewer { background: #334155; color: #94a3b8; }
+
+  /* ===== 削除ボタン ===== */
+  .deletable { position: relative; }
+  .delete-btn {
+    display: none !important;
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: #fee2e2;
+    color: #b91c1c;
+    border: none;
+    border-radius: 4px;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 700;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: background 0.15s;
+    pointer-events: auto !important;
+  }
+  .deletable:hover > .delete-btn { display: flex !important; }
+  .delete-btn:hover { background: #fca5a5; }
+  .input-block.deletable { padding-right: 38px; }
+
+  /* ===== 追加ボタン（行間） ===== */
+  .add-row-btn {
+    display: none;
+    width: 100%;
+    padding: 4px;
+    margin: 2px 0;
+    background: #eff6ff;
+    border: 1px dashed #93c5fd;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 11px;
+    color: #3b82f6;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .tab-content:hover .add-row-btn,
+  .add-row-btn:hover { display: block; }
+  .add-row-btn:hover { background: #dbeafe; }
+
+  /* ===== 保存フィードバック ===== */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1e2535;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ===== エリアタグ ===== */
+  .area-tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 5px;
+  }
+  .area-tokyo { background: #bee3f8; color: #1a365d; }
+  .area-saitama { background: #c6f6d5; color: #1c4532; }
+  .area-gunma { background: #fed7e2; color: #702459; }
+
+  /* チェックリスト内のアイテム追加・削除ボタン */
+  .checklist.deletable { position: relative; padding-top: 20px; }
+  .checklist .check-item { position: relative; padding-right: 28px; }
+  .check-item-del {
+    display: none;
+    position: absolute;
+    top: 50%; right: 4px;
+    transform: translateY(-50%);
+    background: #fee2e2; color: #b91c1c;
+    border: none; border-radius: 3px;
+    width: 18px; height: 18px;
+    font-size: 11px; font-weight: 700;
+    cursor: pointer; z-index: 10;
+    align-items: center; justify-content: center;
+  }
+  .check-item:hover .check-item-del { display: flex; }
+  .check-item-del:hover { background: #fca5a5; }
+  body:not(.admin) .check-item-del { display: none !important; }
+  /* チェックリスト内のアイテム追加ボタン */
+  .checklist-add-item-btn {
+    display: none;
+    width: 100%; margin-top: 8px;
+    padding: 6px;
+    background: #f8fafc; border: 1px dashed #cbd5e0;
+    border-radius: 6px; cursor: pointer;
+    font-size: 12px; font-weight: 600; color: #64748b;
+    font-family: inherit; transition: all 0.15s;
+  }
+  body.admin .checklist-add-item-btn { display: block; }
+  .checklist-add-item-btn:hover { background: #f0fdf4; border-color: #22c55e; color: #166534; }
+  body:not(.admin) .checklist-add-item-btn { display: none !important; }
+
+  /* タグ色ピッカーモーダル */
+  .tag-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 600;
+    align-items: center; justify-content: center;
+  }
+  .tag-modal-overlay.open { display: flex; }
+  .tag-modal {
+    background: #fff; border-radius: 14px;
+    padding: 24px; width: 380px; max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .tag-modal h2 { font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 16px; }
+  .tag-modal label { font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 6px; }
+  .tag-modal input[type=text] {
+    width: 100%; padding: 9px 12px;
+    border: 2px solid #e2e8f0; border-radius: 8px;
+    font-size: 14px; font-family: inherit; outline: none;
+    margin-bottom: 14px; transition: border 0.15s;
+  }
+  .tag-modal input[type=text]:focus { border-color: #3b82f6; }
+  .tag-color-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 8px; margin-bottom: 16px;
+  }
+  .tag-color-opt {
+    padding: 6px 4px; border-radius: 8px; border: 2px solid transparent;
+    cursor: pointer; text-align: center; font-size: 11px; font-weight: 700;
+    transition: all 0.12s;
+  }
+  .tag-color-opt:hover, .tag-color-opt.selected { border-color: #374151; transform: scale(1.06); }
+  .tag-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* アイコン風文字 */
+  .ico { font-size: 15px; }
+
+  /* ===== タブ追加ボタン ===== */
+  .tab-add-btn {
+    padding: 7px 12px;
+    border: 1px dashed #4a5568;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    background: transparent;
+    color: #64748b;
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tab-add-btn:hover { background: #2d3a50; color: #fff; border-color: #64748b; }
+  body:not(.admin) .tab-add-btn { display: none !important; }
+
+  /* タブ削除ボタン */
+  .tab-btn-wrap { position: relative; display: inline-flex; align-items: center; }
+  .tab-del-btn {
+    display: none;
+    position: absolute;
+    top: -6px; right: -6px;
+    background: #ef4444; color: #fff;
+    border: none; border-radius: 50%;
+    width: 16px; height: 16px;
+    font-size: 10px; font-weight: 700;
+    cursor: pointer; z-index: 20;
+    align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .tab-btn-wrap:hover .tab-del-btn { display: flex; }
+  body:not(.admin) .tab-del-btn { display: none !important; }
+
+  /* ===== 新規ファイルモーダル ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 500;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 14px;
+    padding: 28px;
+    width: 420px;
+    max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal h2 { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 6px; }
+  .modal p { font-size: 13px; color: #64748b; margin-bottom: 20px; line-height: 1.6; }
+  .modal label { font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 6px; }
+  .modal input[type=text] {
+    width: 100%; padding: 10px 12px;
+    border: 2px solid #e2e8f0; border-radius: 8px;
+    font-size: 14px; font-family: inherit;
+    outline: none; transition: border 0.15s;
+    margin-bottom: 16px;
+  }
+  .modal input[type=text]:focus { border-color: #3b82f6; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .modal-btn {
+    padding: 9px 20px; border-radius: 8px; border: none;
+    font-size: 13px; font-weight: 700; font-family: inherit;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .modal-btn-cancel { background: #f1f5f9; color: #64748b; }
+  .modal-btn-cancel:hover { background: #e2e8f0; }
+  .modal-btn-ok { background: #3b82f6; color: #fff; }
+  .modal-btn-ok:hover { background: #2563eb; }
+</style>
+</head>
+<body class="admin">
+
+<div class="toolbar">
+  <div class="toolbar-title" contenteditable="true" spellcheck="false" title="クリックして名前を変更">📞 トークスクリプト</div>
+  <nav class="tab-nav">
+    <div class="tab-btn-wrap"><button class="tab-btn active" onclick="switchTab('tab1',this)">受電</button><button class="tab-del-btn" onclick="deleteTab('tab1', this.closest('.tab-btn-wrap'))" title="このタブを削除">×</button></div>
+    <button class="tab-add-btn toolbar-edit-only" onclick="addTab()">＋ タブ追加</button>
+  </nav>
+  <div class="toolbar-actions">
+    <span class="mode-badge admin" id="modeBadge">✏️ 管理者モード</span>
+    <div class="add-menu-wrap toolbar-edit-only">
+      <button class="btn btn-add" onclick="toggleAddMenu(event)">＋ ブロック追加 ▾</button>
+      <div class="add-menu" id="addMenu">
+        <div class="add-menu-title">追加するブロックを選択</div>
+        <button class="add-menu-item" onclick="addBlock('section')"><span class="swatch" style="background:#3b82f6;border-left:4px solid #1d4ed8;width:16px"></span>セクションタイトル</button>
+        <hr class="add-menu-sep">
+        <button class="add-menu-item" onclick="addBlock('script')"><span class="swatch swatch-blue"></span>トークブロック（青）</button>
+        <button class="add-menu-item" onclick="addBlock('input')"><span class="swatch swatch-green"></span>入力項目（緑）</button>
+        <button class="add-menu-item" onclick="addBlock('branch')"><span class="swatch swatch-orange"></span>分岐ブロック（オレンジ）</button>
+        <hr class="add-menu-sep">
+        <button class="add-menu-item" onclick="addBlock('note')"><span class="swatch swatch-yellow"></span>注釈（黄）</button>
+        <button class="add-menu-item" onclick="addBlock('warning')"><span class="swatch swatch-red"></span>注意（赤）</button>
+        <hr class="add-menu-sep">
+        <button class="add-menu-item" onclick="addBlock('checklist')"><span class="swatch" style="background:#e2e8f0;border-left:3px solid #64748b;width:14px"></span>チェックリスト</button>
+        <button class="add-menu-item" onclick="openTagModal()"><span class="swatch" style="background:#bee3f8;border-radius:8px;width:14px"></span>タグ付きチェックリスト</button>
+      </div>
+    </div>
+    <button class="btn btn-save toolbar-edit-only" onclick="saveToLocal()">💾 保存</button>
+    <button class="btn btn-dl" onclick="downloadHTML()">⬇ ダウンロード</button>
+    <button class="btn toolbar-edit-only" style="background:#8b5cf6;color:#fff" onclick="openNewFileModal()">📄 新規ファイル</button>
+  </div>
+</div>
+
+<div class="edit-banner toolbar-edit-only">
+  <span class="ico">✏️</span>
+  <span>テキストを<strong>クリックすると直接編集</strong>できます。編集後は「<strong>💾 保存</strong>」で変更を保持、「<strong>⬇ ダウンロード</strong>」でHTMLファイルとして保存できます。</span>
+</div>
+
+<!-- ==================== 搬送依頼 ==================== -->
+<div id="tab1" class="tab-content active">
+  <div class="section-title deletable">
+    <button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <span class="sec-title-text" contenteditable="true">① セクションタイトル</span>
+  </div>
+  <div class="script-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="text" contenteditable="true">ここにトーク内容を入力してください。</div>
+  </div>
+</div>
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<!-- 新規ファイルモーダル -->
+<div class="modal-overlay open" id="newFileModal">
+  <div class="modal">
+    <h2>📄 新規スクリプトファイルを作成</h2>
+    <p>タイトルを入力するとテンプレートを元に新しいHTMLファイルを作成します。ダウンロード後、GitHubにアップロードしてください。</p>
+    <label>ファイルのタイトル（例：クレーム対応、アポ取得）</label>
+    <input type="text" id="newFileTitle" placeholder="例：アポ取得スクリプト">
+    <label>最初のタブ名</label>
+    <input type="text" id="newFileTab1" placeholder="例：電話受電">
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-cancel" onclick="closeNewFileModal()">キャンセル</button>
+      <button class="modal-btn modal-btn-ok" onclick="createNewFile()">作成してダウンロード</button>
+    </div>
+  </div>
+</div>
+
+<!-- タグ付きチェックリスト作成モーダル -->
+<div class="tag-modal-overlay" id="tagModal">
+  <div class="tag-modal">
+    <h2>🏷 タグ付きチェックリストを追加</h2>
+    <label>タグのラベル名</label>
+    <input type="text" id="tagLabelInput" placeholder="例：東京、大阪、グループA…">
+    <label>タグの色</label>
+    <div class="tag-color-grid" id="tagColorGrid">
+      <div class="tag-color-opt selected" data-bg="#bee3f8" data-fg="#1a365d" style="background:#bee3f8;color:#1a365d">青</div>
+      <div class="tag-color-opt" data-bg="#c6f6d5" data-fg="#1c4532" style="background:#c6f6d5;color:#1c4532">緑</div>
+      <div class="tag-color-opt" data-bg="#fed7e2" data-fg="#702459" style="background:#fed7e2;color:#702459">ピンク</div>
+      <div class="tag-color-opt" data-bg="#feebc8" data-fg="#7b341e" style="background:#feebc8;color:#7b341e">オレンジ</div>
+      <div class="tag-color-opt" data-bg="#e9d8fd" data-fg="#44337a" style="background:#e9d8fd;color:#44337a">紫</div>
+      <div class="tag-color-opt" data-bg="#fed7d7" data-fg="#742a2a" style="background:#fed7d7;color:#742a2a">赤</div>
+      <div class="tag-color-opt" data-bg="#fefcbf" data-fg="#744210" style="background:#fefcbf;color:#744210">黄</div>
+      <div class="tag-color-opt" data-bg="#e2e8f0" data-fg="#2d3748" style="background:#e2e8f0;color:#2d3748">グレー</div>
+      <div class="tag-color-opt" data-bg="#c3dafe" data-fg="#3c366b" style="background:#c3dafe;color:#3c366b">インディゴ</div>
+      <div class="tag-color-opt" data-bg="#b2f5ea" data-fg="#234e52" style="background:#b2f5ea;color:#234e52">ティール</div>
+    </div>
+    <div class="tag-modal-actions">
+      <button class="modal-btn modal-btn-cancel" onclick="closeTagModal()">キャンセル</button>
+      <button class="modal-btn modal-btn-ok" onclick="createTagChecklist()">追加</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== モード判定 =====
+const IS_ADMIN = location.search.includes('admin') || location.hash.includes('admin');
+
+function applyMode() {
+  const badge = document.getElementById('modeBadge');
+  if (IS_ADMIN) {
+    document.body.classList.add('admin');
+    badge.textContent = '✏️ 管理者モード';
+    badge.className = 'mode-badge admin';
+  } else {
+    document.body.classList.remove('admin');
+    badge.textContent = '👁 閲覧モード';
+    badge.className = 'mode-badge viewer';
+    // 閲覧モードはcontenteditable無効化
+    document.querySelectorAll('[contenteditable]').forEach(el => {
+      el.removeAttribute('contenteditable');
+    });
+  }
+}
+
+// ===== タブ切替 =====
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  const content = document.getElementById(id);
+  if (content) content.classList.add('active');
+  btn.classList.add('active');
+}
+
+// ===== 削除 =====
+function deleteBlock(btn) {
+  // ボタン自身またはその祖先の.deletableを削除
+  var el = btn;
+  while (el && !el.classList.contains('deletable')) {
+    el = el.parentElement;
+  }
+  if (el && confirm('このブロックを削除しますか？')) {
+    el.remove();
+  }
+}
+
+// ===== 分岐選択肢の追加・削除 =====
+function addBranchItem(btn) {
+  const grid = btn.closest('.branch-container').querySelector('.branch-grid');
+  const colors = ['#48bb78','#f59e0b','#3b82f6','#a78bfa','#f87171','#34d399'];
+  const count = grid.querySelectorAll('.branch-item').length;
+  const color = colors[count % colors.length];
+  const item = document.createElement('div');
+  item.className = 'branch-item';
+  item.style.borderTopColor = color;
+  item.innerHTML = `<button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button>
+    <div class="branch-cond"><span class="cond-text" contenteditable="true">▶ 選択肢を入力</span></div>
+    <div class="branch-action" contenteditable="true">対応内容を入力してください。</div>`;
+  grid.appendChild(item);
+  showToast('選択肢を追加しました');
+}
+
+function deleteBranchItem(btn) {
+  const item = btn.closest('.branch-item');
+  const grid = item.closest('.branch-grid');
+  if (grid.querySelectorAll('.branch-item').length <= 1) {
+    showToast('選択肢は最低1つ必要です', '⚠️'); return;
+  }
+  if (confirm('この選択肢を削除しますか？')) item.remove();
+}
+
+// ===== 追加メニュー開閉 =====
+function toggleAddMenu(e) {
+  e.stopPropagation();
+  document.getElementById('addMenu').classList.toggle('open');
+}
+document.addEventListener('click', () => {
+  document.getElementById('addMenu').classList.remove('open');
+});
+
+// ===== ブロック追加 =====
+function addBlock(type) {
+  document.getElementById('addMenu').classList.remove('open');
+
+  // 現在アクティブなタブのコンテンツ末尾に追加
+  const target = document.querySelector('.tab-content.active');
+
+  let html = '';
+  if (type === 'section') {
+    html = `<div class="section-title deletable"><button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button><span class="sec-title-text" contenteditable="true">新しいセクション</span></div>`;
+  } else if (type === 'script') {
+    html = `<div class="script-block deletable" style="margin-top:6px">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+  <div class="text" contenteditable="true">ここにトーク内容を入力してください。</div>
+</div>`;
+  } else if (type === 'input') {
+    html = `<div class="input-block deletable" style="margin-top:6px">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+  <div class="field" contenteditable="true">・項目名</div>
+  <div class="script-text" contenteditable="true">ここにトーク内容を入力してください。</div>
+</div>`;
+  } else if (type === 'branch') {
+    html = `<div class="branch-container deletable" style="margin-top:8px">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+  <div class="branch-header">
+    <div class="branch-header-label"><span class="ico">⑂</span> <span contenteditable="true">分岐：条件を入力してください</span></div>
+  </div>
+  <div class="branch-grid">
+    <div class="branch-item yes"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button>
+      <div class="branch-cond"><span class="cond-text" contenteditable="true">▶ はい / あり</span></div>
+      <div class="branch-action" contenteditable="true">対応内容を入力してください。</div>
+    </div>
+    <div class="branch-item no"><button class="branch-item-del" onclick="deleteBranchItem(this)" title="この選択肢を削除">×</button>
+      <div class="branch-cond"><span class="cond-text" contenteditable="true">▶ いいえ / なし</span></div>
+      <div class="branch-action" contenteditable="true">対応内容を入力してください。</div>
+    </div>
+  </div>
+</div>`;
+  } else if (type === 'note') {
+    html = `<div class="note-block deletable" style="margin-top:6px">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除" style="top:4px;right:6px;">×</button>
+  <span contenteditable="true">  注釈内容を入力してください。
+</div>`;
+  } else if (type === 'warning') {
+    html = `<div class="warning-block deletable" style="margin-top:6px">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除" style="top:4px;right:6px;">×</button>
+  <span contenteditable="true">  注意内容を入力してください。
+</div>`;
+  }
+
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const newEl = tmp.firstElementChild;
+  target.appendChild(newEl);
+
+  // フォーカスを新しいブロックの編集可能な要素へ
+  const editable = newEl.querySelector('[contenteditable="true"]');
+  if (editable) {
+    editable.focus();
+    // テキスト全選択
+    const range = document.createRange();
+    range.selectNodeContents(editable);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  // スクロール
+  newEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  showToast('ブロックを追加しました');
+}
+
+// ===== トースト =====
+function showToast(msg, emoji = '✅') {
+  const t = document.getElementById('toast');
+  t.innerHTML = `<span>${emoji}</span> ${msg}`;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ===== ローカル保存 =====
+function saveToLocal() {
+  try {
+    localStorage.setItem('talkscript_html', document.documentElement.outerHTML);
+    showToast('このブラウザに保存しました');
+  } catch(e) {
+    showToast('保存に失敗しました', '❌');
+  }
+}
+
+// ===== HTMLダウンロード =====
+function downloadHTML() {
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'トークスクリプト_編集版.html';
+  a.click();
+  showToast('HTMLファイルをダウンロードしました', '⬇');
+}
+
+// ===== チェックリスト操作 =====
+function addCheckItem(btn) {
+  const checklist = btn.closest('.checklist');
+  const item = document.createElement('div');
+  item.className = 'check-item';
+  item.innerHTML = `<span contenteditable="true">新しい項目を入力してください</span>
+    <button class="check-item-del" onclick="deleteCheckItem(this)" title="削除">×</button>`;
+  checklist.insertBefore(item, btn);
+  item.querySelector('[contenteditable]').focus();
+  const r = document.createRange();
+  r.selectNodeContents(item.querySelector('[contenteditable]'));
+  window.getSelection().removeAllRanges();
+  window.getSelection().addRange(r);
+}
+
+function deleteCheckItem(btn) {
+  const item = btn.closest('.check-item');
+  const checklist = item.closest('.checklist');
+  if (checklist.querySelectorAll('.check-item').length <= 1) {
+    showToast('項目は最低1つ必要です', '⚠️'); return;
+  }
+  item.remove();
+}
+
+// ===== タグモーダル =====
+let _tagCallback = null;
+
+function openTagModal() {
+  document.getElementById('tagModal').classList.add('open');
+  document.getElementById('tagLabelInput').value = '';
+  document.getElementById('tagLabelInput').focus();
+  // 色選択の初期化
+  document.querySelectorAll('.tag-color-opt').forEach((el, i) => {
+    el.classList.toggle('selected', i === 0);
+    el.onclick = () => {
+      document.querySelectorAll('.tag-color-opt').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+    };
+  });
+}
+
+function closeTagModal() {
+  document.getElementById('tagModal').classList.remove('open');
+}
+
+function getSelectedTagColor() {
+  const sel = document.querySelector('.tag-color-opt.selected');
+  return sel ? { bg: sel.dataset.bg, fg: sel.dataset.fg, label: sel.textContent } : { bg: '#bee3f8', fg: '#1a365d', label: '青' };
+}
+
+function createTagChecklist() {
+  const label = document.getElementById('tagLabelInput').value.trim() || 'タグ';
+  const color = getSelectedTagColor();
+  closeTagModal();
+
+  const target = document.querySelector('.tab-content.active');
+  const html = `<div class="checklist deletable" style="margin-top:6px">
+  <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+  <div class="checklist-title">
+    <span class="area-tag" style="background:${color.bg};color:${color.fg}">${label}</span>
+    <span contenteditable="true"></span>
+  </div>
+  <div class="check-item"><span contenteditable="true">項目を入力してください</span>
+    <button class="check-item-del" onclick="deleteCheckItem(this)" title="削除">×</button></div>
+  <button class="checklist-add-item-btn" onclick="addCheckItem(this)">＋ 項目を追加</button>
+</div>`;
+
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const el = tmp.firstElementChild;
+  target.appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  showToast('タグ付きチェックリストを追加しました');
+}
+
+// ===== タブ追加・削除 =====
+let tabCounter = 7; // 既存タブが6つなので7から
+
+function addTab() {
+  const name = prompt('新しいタブの名前を入力してください：');
+  if (!name || !name.trim()) return;
+
+  const id = 'tab' + tabCounter++;
+  const nav = document.querySelector('.tab-nav');
+
+  // タブボタンをラップ付きで追加
+  const wrap = document.createElement('div');
+  wrap.className = 'tab-btn-wrap';
+  wrap.innerHTML = `
+    <button class="tab-btn" onclick="switchTab('${id}', this)">${name.trim()}</button>
+    <button class="tab-del-btn" onclick="deleteTab('${id}', this.closest('.tab-btn-wrap'))" title="このタブを削除">×</button>`;
+  // ＋タブ追加ボタンの前に挿入
+  const addBtn = nav.querySelector('.tab-add-btn');
+  nav.insertBefore(wrap, addBtn);
+
+  // コンテンツエリア追加
+  const content = document.createElement('div');
+  content.id = id;
+  content.className = 'tab-content';
+  content.innerHTML = `
+    <div class="section-title deletable">
+      <button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button>
+      <span class="sec-title-text" contenteditable="true">① 新しいセクション</span>
+    </div>
+    <div class="script-block deletable">
+      <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+      <div class="text" contenteditable="true">ここにトーク内容を入力してください。</div>
+    </div>`;
+  document.querySelector('.tab-content').parentNode.insertBefore(
+    content,
+    document.getElementById('toast')
+  );
+
+  // 新しいタブに切替
+  wrap.querySelector('.tab-btn').click();
+  showToast(`「${name.trim()}」タブを追加しました`);
+}
+
+function deleteTab(id, wrap) {
+  const content = document.getElementById(id);
+  if (!confirm(`このタブを削除しますか？
+内容はすべて消えます。`)) return;
+
+  // 削除前に別のタブをアクティブに
+  const allBtns = document.querySelectorAll('.tab-nav .tab-btn');
+  const isActive = wrap.querySelector('.tab-btn').classList.contains('active');
+  wrap.remove();
+  content.remove();
+
+  if (isActive) {
+    const firstBtn = document.querySelector('.tab-nav .tab-btn');
+    if (firstBtn) firstBtn.click();
+  }
+  showToast('タブを削除しました');
+}
+
+// ===== 新規ファイル =====
+function openNewFileModal() {
+  document.getElementById('newFileModal').classList.add('open');
+  document.getElementById('newFileTitle').focus();
+}
+
+function closeNewFileModal() {
+  document.getElementById('newFileModal').classList.remove('open');
+}
+
+function createNewFile() {
+  const title = document.getElementById('newFileTitle').value.trim() || '新しいスクリプト';
+  const tab1  = document.getElementById('newFileTab1').value.trim()  || '受電対応';
+
+  const template = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title}（編集版）</title>
+<link rel="stylesheet" href="トークスクリプト_編集版.html">
+</head>
+<body>
+</body>
+</html>`;
+
+  // 現在のページのHTMLをベースに、タブとコンテンツだけ差し替える
+  const base = document.documentElement.outerHTML;
+
+  // タイトル変更
+  let newHtml = base
+    .replace(/<title>.*?<\/title>/, `<title>${title}（編集版）</title>`)
+    .replace(/<div class="toolbar-title">📞 テストスクリプト</div>`);
+
+  // タブナビのボタンを1つだけにする（tab1のみ残す）
+  newHtml = newHtml.replace(
+    /<nav class="tab-nav">([\s\S]*?)<\/nav>/,
+    `<nav class="tab-nav">
+    <div class="tab-btn-wrap"><button class="tab-btn active" onclick="switchTab('tab1',this)">${tab1}</button><button class="tab-del-btn" onclick="deleteTab('tab1', this.closest('.tab-btn-wrap'))" title="このタブを削除">×</button></div>
+    <button class="tab-add-btn toolbar-edit-only" onclick="addTab()">＋ タブ追加</button>
+  </nav>`
+  );
+
+  // tab-contentを1つだけにする
+  newHtml = newHtml.replace(
+    /(<div id="tab1" class="tab-content active">)([\s\S]*?)(<div id="tab2")/,
+    `$1
+  <div class="section-title deletable">
+    <button class="delete-btn sec-del-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <span class="sec-title-text" contenteditable="true">① セクションタイトル</span>
+  </div>
+  <div class="script-block deletable">
+    <button class="delete-btn" onclick="deleteBlock(this)" title="削除">×</button>
+    <div class="text" contenteditable="true">ここにトーク内容を入力してください。</div>
+  </div>
+</div>
+<div id="tab2"`
+  );
+
+  // tab2〜tab6のコンテンツを除去
+  newHtml = newHtml.replace(/<div id="tab[2-9]"[\s\S]*?(?=<!-- トースト -->)/, '');
+
+  const blob = new Blob([newHtml], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${title}_編集版.html`;
+  a.click();
+
+  closeNewFileModal();
+  showToast(`「${title}」をダウンロードしました`, '📄');
+}
+
+// Enterキーで確定
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('newFileModal').classList.contains('open')) {
+    createNewFile();
+  }
+  if (e.key === 'Escape' && document.getElementById('newFileModal').classList.contains('open')) {
+    closeNewFileModal();
+  }
+});
+
+// ===== ローカルストレージから復元 =====
+window.addEventListener('DOMContentLoaded', () => {
+  applyMode();
+  if (localStorage.getItem('talkscript_html')) {
+    const banner = document.querySelector('.edit-banner');
+    const restore = document.createElement('button');
+    restore.textContent = '前回の編集内容を復元';
+    restore.style.cssText = 'margin-left:12px;padding:3px 10px;border-radius:5px;border:1px solid #93c5fd;background:#dbeafe;color:#1d4ed8;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;';
+    restore.onclick = () => {
+      if (confirm('前回保存した内容に戻しますか？（現在の編集は失われます）')) {
+        document.open();
+        document.write(localStorage.getItem('talkscript_html'));
+        document.close();
+      }
+    };
+    banner.appendChild(restore);
+  }
+});
+</script>
+
+
+</body></html>
